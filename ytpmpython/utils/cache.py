@@ -1,53 +1,43 @@
 """
-Simple file-based cache keyed by strings. Uses hashed filenames.
-Useful for caching rendered chunks.
+Small file cache keyed by hash.
 """
 
-import hashlib
-import json
+from typing import Optional
 import os
-from typing import Any, Optional
-import logging
+import hashlib
 import time
 
-logger = logging.getLogger(__name__)
-
 class FileCache:
-    def __init__(self, cache_dir: str = ".ytpmv_cache"):
-        self.cache_dir = cache_dir
-        os.makedirs(self.cache_dir, exist_ok=True)
+    def __init__(self, directory: str = ".ytpmv_cache"):
+        self.directory = directory
+        os.makedirs(self.directory, exist_ok=True)
 
-    def _key_to_path(self, key: str) -> str:
+    def _path(self, key: str) -> str:
         h = hashlib.sha1(key.encode("utf-8")).hexdigest()
-        return os.path.join(self.cache_dir, f"{h}.cache")
+        return os.path.join(self.directory, f"{h}.bin")
 
-    def get(self, key: str, max_age_seconds: Optional[int] = None) -> Optional[bytes]:
-        path = self._key_to_path(key)
-        if not os.path.exists(path):
+    def get(self, key: str, max_age: Optional[int] = None) -> Optional[bytes]:
+        p = self._path(key)
+        if not os.path.exists(p):
             return None
-        if max_age_seconds is not None:
-            age = time.time() - os.path.getmtime(path)
-            if age > max_age_seconds:
+        if max_age is not None:
+            if time.time() - os.path.getmtime(p) > max_age:
                 try:
-                    os.remove(path)
+                    os.remove(p)
                 except Exception:
                     pass
                 return None
-        try:
-            with open(path, "rb") as fh:
-                return fh.read()
-        except Exception as exc:
-            logger.debug("Cache read failed: %s", exc)
-            return None
+        with open(p, "rb") as fh:
+            return fh.read()
 
     def set(self, key: str, data: bytes) -> None:
-        path = self._key_to_path(key)
-        with open(path, "wb") as fh:
+        p = self._path(key)
+        with open(p, "wb") as fh:
             fh.write(data)
 
     def clear(self) -> None:
-        for fn in os.listdir(self.cache_dir):
+        for fn in os.listdir(self.directory):
             try:
-                os.remove(os.path.join(self.cache_dir, fn))
+                os.remove(os.path.join(self.directory, fn))
             except Exception:
                 pass

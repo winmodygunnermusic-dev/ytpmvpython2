@@ -1,45 +1,34 @@
 """
-Simple preview GUI for timeline and sample assignment.
+Preview launcher updated to use the interactive Editor when available.
 
-This is a minimal Windows-first GUI using PySimpleGUI if available. The goal
-is not a full DAW but a compact preview tool for quick testing and drag-drop
-assignment in the project.
-
-If PySimpleGUI is not installed, the module falls back to a CLI preview.
+This module preserves the previous simple preview behavior when PySimpleGUI is
+not installed, but will launch the richer Editor if PySimpleGUI is present.
 """
 
-import logging
 from typing import List
 from ..events import Event
-import webbrowser
+import logging
 
 logger = logging.getLogger(__name__)
 
 try:
-    import PySimpleGUI as sg  # type: ignore
-    HAS_PYSIMPLEGUI = True
+    from .editor import Editor  # type: ignore
+    from .project import Project  # type: ignore
+    HAS_EDITOR = True
 except Exception:
-    HAS_PYSIMPLEGUI = False
+    HAS_EDITOR = False
 
 def preview_timeline(events: List[Event]):
     """
-    Launch a minimal preview window listing events and offering to open generated files.
+    Open an interactive editor if available, otherwise log/print a simple timeline listing.
     """
-    if HAS_PYSIMPLEGUI:
-        layout = [
-            [sg.Text("YTPMV Timeline Preview")],
-            [sg.Listbox(values=[f"{e.start:.2f}s {e.type} {e.meta}" for e in events], size=(80, 20))],
-            [sg.Button("Open Output Folder"), sg.Button("Close")],
-        ]
-        window = sg.Window("YTPMV Preview", layout, finalize=True)
-        while True:
-            event, values = window.read()
-            if event in (None, "Close"):
-                break
-            if event == "Open Output Folder":
-                webbrowser.open(".")
-        window.close()
+    if HAS_EDITOR:
+        # Create a temporary project and launch Editor
+        proj = Project.from_events(events, sample_map={})
+        ed = Editor(project=proj)
+        ed.run()
     else:
-        logger.info("PySimpleGUI not installed — CLI preview:")
+        # Fallback
+        logger.info("Interactive editor not available; printing timeline:")
         for e in events:
             logger.info("Event: start=%.3f dur=%.3f type=%s meta=%r", e.start, e.duration, e.type, e.meta)

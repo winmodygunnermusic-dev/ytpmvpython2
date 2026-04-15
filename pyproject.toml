@@ -1,0 +1,28 @@
+[build-system]
+requires = ["setuptools>=42", "wheel"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "ytpmpython"
+version = "2.0.0"
+description = "YTPMVPython 2 — Module tracker (OpenMPT/MIDI) → programmatic YTPMV video pipeline"
+readme = "README.md"
+requires-python = ">=3.8"
+authors = [
+  {name = "YTPMVPython Contributors"}
+]
+license = {text = "MIT"}
+
+dependencies = [
+  "moviepy==1.0.1",
+  "numpy",
+]
+
+# Optional groups for extras
+[project.optional-dependencies]
+midi = ["mido"]
+gui = ["PySimpleGUI", "simpleaudio"]
+audio-hq = ["librosa", "soundfile"]
+
+[project.scripts]
+ytpmv = "ytpmpython.cli:main"
